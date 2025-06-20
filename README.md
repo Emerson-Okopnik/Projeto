@@ -90,17 +90,6 @@ cp .env.example .env
 npm run dev
 ```
 
-## 🔧 Configuração Adicional
-
-### JWT
-
-Em `config/jwt.php`:
-
-```php
-'ttl' => 60, // Tempo de expiração em minutos
-'refresh_ttl' => 20160, // Tempo do refresh token (14 dias)
-```
-
 ## 📱 Uso
 
 1. Acesse `http://localhost:3000`
