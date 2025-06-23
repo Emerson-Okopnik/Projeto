@@ -59,9 +59,9 @@ class ClientController extends Controller
     public function update(Request $request, Client $client)
     {
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
+            'name' => 'nullable|string|max:255',
             'email' => 'nullable|email|unique:clients,email,' . $client->id,
-            'phone' => 'required|string|max:20',
+            'phone' => 'nullable|string|max:20',
             'address' => 'nullable|string',
             'cpf' => 'nullable|string|max:14|unique:clients,cpf,' . $client->id,
             'birth_date' => 'nullable|date',

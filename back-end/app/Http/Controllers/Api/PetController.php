@@ -71,11 +71,11 @@ class PetController extends Controller
     public function update(Request $request, Pet $pet)
     {
         $validator = Validator::make($request->all(), [
-            'client_id' => 'required|exists:clients,id',
-            'name' => 'required|string|max:255',
-            'species' => 'required|string|max:100',
+            'client_id' => 'nullable|exists:clients,id',
+            'name' => 'nullable|string|max:255',
+            'species' => 'nullable|string|max:100',
             'breed' => 'nullable|string|max:100',
-            'gender' => 'required|in:male,female',
+            'gender' => 'nullable|in:male,female',
             'birth_date' => 'nullable|date',
             'weight' => 'nullable|numeric|min:0',
             'color' => 'nullable|string|max:100',
