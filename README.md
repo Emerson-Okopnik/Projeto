@@ -165,14 +165,6 @@ Para facilitar os testes da API, importe o arquivo
 Defina a variável `baseUrl` com a URL do backend (ex.: `http://localhost:8000`)
 e utilize a variável `token` após autenticar-se.
 
-## 👥 Contribuição
-
-1. Fork o projeto
-2. Crie sua branch: `git checkout -b feature/NomeFeature`
-3. Commit: `git commit -m 'Minha feature'`
-4. Push: `git push origin feature/NomeFeature`
-5. Abra um Pull Request
-
 ## 📄 Licença
 
 Este projeto está sob licença MIT. Veja o arquivo `LICENSE`.
