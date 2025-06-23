@@ -52,8 +52,6 @@ Sistema completo para gestão de clínicas veterinárias, desenvolvido com Larav
 
 Este projeto utiliza **GitHub Actions** para executar testes unitários automaticamente a cada push nas branches `main` e `develop`, garantindo a qualidade do código.
 
-### Workflow: `.github/workflows/main.yml`
-
 O pipeline contém as seguintes etapas:
 
 - **Checkout** do repositório
