@@ -70,8 +70,6 @@ O pipeline contém as seguintes etapas:
 
 Esse processo garante a integridade do sistema a cada alteração no código.
 
----
-
 ## 📆 Instalação
 
 ### Backend
