@@ -48,49 +48,49 @@ Sistema completo para gestão de clínicas veterinárias, desenvolvido com Larav
 - Axios (requisições HTTP)
 - Tailwind CSS (estilização)
 
-## ⚙️ Integração Contínua (CI) com GitHub Actions
+## ⚙️ Integração e Entrega Contínua (CI/CD) com GitHub Actions
 
-Este projeto utiliza **GitHub Actions** para executar testes unitários automaticamente a cada push nas branches `main` e `develop`, garantindo a qualidade do código.
+Este projeto utiliza **GitHub Actions** para implementar **Integração Contínua (CI)** e **Entrega Contínua (CD)**, garantindo qualidade de código e automação total do deploy em ambientes de staging e produção.
 
-O pipeline contém as seguintes etapas:
+### Integração Contínua (CI)
+
+A cada push nas branches `main` e `develop`, o pipeline executa automaticamente:
 
 - **Checkout** do repositório
-- **Configuração do ambiente**:
-  - PHP 8.2 para o backend
-  - Node.js 20 para o frontend
+- **Configuração de ambiente**:
+  - PHP 8.2 para o backend (Laravel)
+  - Node.js 20 para o frontend (Vue.js)
 - **Instalação de dependências**:
-  - `composer install` no Laravel
-  - `npm install` no Vue.js
+  - `composer install` para o Laravel
+  - `npm install` para o Vue
 - **Execução de testes unitários**:
   - `php artisan test` para a API
-  - `npm run test` com Vitest para o frontend
-- O CI **falha automaticamente se houver erros nos testes**
+  - `npm run test` com Vitest no front
+- O CI **falha automaticamente se qualquer teste falhar**, bloqueando o deploy
 
-Esse processo garante a integridade do sistema a cada alteração no código.
+### Entrega Contínua (CD)
 
-## 🚚 Entrega Contínua (CD) com GitHub Actions
+Após os testes, o workflow executa o **deploy automático na AWS** com base na branch:
 
-Este projeto também implementa **Entrega Contínua (CD)** via GitHub Actions, automatizando o deploy da aplicação em dois ambientes distintos hospedados na AWS:
+#### Ambiente de Staging (`develop`)
+- Push em `develop` aciona:
+  - Execução dos testes
+  - Deploy automático para o servidor de staging (EC2 AWS)
+  - Atualização com: `composer install`, `php artisan migrate`, `npm run build`
 
-### Ambiente de Staging (`develop`)
-- A cada push na branch `develop`, o workflow executa:
-  - Testes automatizados do frontend e backend
-  - Deploy automático para a instância de *staging* na AWS (via SSH)
-  - Atualização dos arquivos da API e do frontend com `composer install`, `php artisan migrate` e `npm run build`
-
-### Ambiente de Produção (`main`)
-- A cada push na branch `main`, o GitHub Actions:
-  - Reexecuta todos os testes
-  - Faz deploy automático para o servidor de *produção* na AWS
-  - Utiliza secrets seguros (`AWS_PROD_HOST`, `AWS_PROD_USER`, `AWS_PROD_SSH_KEY`) definidos no repositório
+#### Ambiente de Produção (`main`)
+- Push em `main` aciona:
+  - Execução dos testes
+  - Deploy automático para o servidor de produção (EC2 AWS)
+  - Uso de secrets: `AWS_PROD_HOST`, `AWS_PROD_USER`, `AWS_PROD_SSH_KEY`
 
 ### Segurança e Automação
-- O processo de deploy usa a action [`appleboy/ssh-action`](https://github.com/appleboy/ssh-action) com chave SSH segura
-- As variáveis sensíveis são armazenadas como **GitHub Secrets**
-- O deploy só ocorre se **todos os testes passarem**, garantindo entregas confiáveis
 
-Com isso, o projeto mantém **ambientes atualizados automaticamente**, reduzindo o risco de erro manual e acelerando o ciclo de entrega contínua.
+- Deploy via [`appleboy/ssh-action`](https://github.com/appleboy/ssh-action)
+- Secrets sensíveis armazenados com **GitHub Secrets**
+- Deploy só ocorre se os testes passarem com sucesso ✅
 
+Com essa configuração, o projeto entrega um fluxo confiável de desenvolvimento até produção, com qualidade validada automaticamente em cada etapa.
 
 ## 📆 Instalação
 
