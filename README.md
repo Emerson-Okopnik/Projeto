@@ -91,7 +91,7 @@ Com essa configuração, o projeto entrega um fluxo confiável de desenvolviment
 ### Backend
 
 ```bash
-cd backend
+cd back-end
 composer install
 cp .env.example .env
 php artisan key:generate
@@ -122,7 +122,7 @@ php artisan serve
 ### Frontend
 
 ```bash
-cd frontend
+cd front-end
 npm install
 cp .env.example .env
 npm run dev
