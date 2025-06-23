@@ -120,6 +120,13 @@ npm run test
 - `POST /api/appointments` - Criar consulta
 - `GET /api/reports/dashboard-stats` - Estatísticas
 
+## 📬 Coleção Postman
+
+Para facilitar os testes da API, importe o arquivo
+`documentos/clinica-veterinaria.postman_collection.json` no Postman.
+Defina a variável `baseUrl` com a URL do backend (ex.: `http://localhost:8000`)
+e utilize a variável `token` após autenticar-se.
+
 ## 👥 Contribuição
 
 1. Fork o projeto
