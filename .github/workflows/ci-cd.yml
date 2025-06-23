@@ -52,7 +52,7 @@ jobs:
 
       - name: Rodar testes
         run: |
-          cd backend
+          cd back-end
           ./vendor/bin/phpunit
 
   vue-tests:
@@ -68,7 +68,7 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Rodar testes frontend
+      - name: Rodar testes front-end
         run: |
           cd front-end
           npm install
@@ -93,20 +93,20 @@ jobs:
           script: |
             echo "🔄 Iniciando deploy na AWS..."
             if [ "${{ github.ref }}" == "refs/heads/main" ]; then
-              cd /var/www/producao-backend
+              cd /var/www/producao-back-end
             else
-              cd /var/www/staging-backend
+              cd /var/www/staging-back-end
             fi
             git pull origin ${{ github.ref_name }}
             composer install --no-dev
             php artisan migrate --force
             php artisan config:cache
 
-            echo "➡️ Deploy Frontend"
+            echo "➡️ Deploy Front-end"
             if [ "${{ github.ref }}" == "refs/heads/main" ]; then
-              cd /var/www/producao-frontend
+              cd /var/www/producao-front-end
             else
-              cd /var/www/staging-frontend
+              cd /var/www/staging-front-end
             fi
             git pull origin ${{ github.ref_name }}
             npm install
