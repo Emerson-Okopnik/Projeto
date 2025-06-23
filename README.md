@@ -48,6 +48,28 @@ Sistema completo para gestão de clínicas veterinárias, desenvolvido com Larav
 - Axios (requisições HTTP)
 - Tailwind CSS (estilização)
 
+## ⚙️ Integração Contínua (CI) com GitHub Actions
+
+Este projeto utiliza **GitHub Actions** para executar testes unitários automaticamente a cada push nas branches `main` e `develop`, garantindo a qualidade do código.
+
+### 📄 Workflow: `.github/workflows/main.yml`
+
+O pipeline contém as seguintes etapas:
+
+- ✅ **Checkout** do repositório
+- ✅ **Configuração do ambiente**:
+  - PHP 8.2 para o backend
+  - Node.js 20 para o frontend
+- ✅ **Instalação de dependências**:
+  - `composer install` no Laravel
+  - `npm install` no Vue.js
+- ✅ **Execução de testes unitários**:
+  - `php artisan test` para a API
+  - `npm run test` com Vitest para o frontend
+- ✅ O CI **falha automaticamente se houver erros nos testes**
+
+Esse processo garante a integridade do sistema a cada alteração no código.
+
 ## 📆 Instalação
 
 ### Backend
