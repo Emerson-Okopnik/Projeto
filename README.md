@@ -52,23 +52,47 @@ Sistema completo para gestão de clínicas veterinárias, desenvolvido com Larav
 
 Este projeto utiliza **GitHub Actions** para executar testes unitários automaticamente a cada push nas branches `main` e `develop`, garantindo a qualidade do código.
 
-### 📄 Workflow: `.github/workflows/main.yml`
+### Workflow: `.github/workflows/main.yml`
 
 O pipeline contém as seguintes etapas:
 
-- ✅ **Checkout** do repositório
-- ✅ **Configuração do ambiente**:
+- **Checkout** do repositório
+- **Configuração do ambiente**:
   - PHP 8.2 para o backend
   - Node.js 20 para o frontend
-- ✅ **Instalação de dependências**:
+- **Instalação de dependências**:
   - `composer install` no Laravel
   - `npm install` no Vue.js
-- ✅ **Execução de testes unitários**:
+- **Execução de testes unitários**:
   - `php artisan test` para a API
   - `npm run test` com Vitest para o frontend
-- ✅ O CI **falha automaticamente se houver erros nos testes**
+- O CI **falha automaticamente se houver erros nos testes**
 
 Esse processo garante a integridade do sistema a cada alteração no código.
+
+## 🚚 Entrega Contínua (CD) com GitHub Actions
+
+Este projeto também implementa **Entrega Contínua (CD)** via GitHub Actions, automatizando o deploy da aplicação em dois ambientes distintos hospedados na AWS:
+
+### Ambiente de Staging (`develop`)
+- A cada push na branch `develop`, o workflow executa:
+  - Testes automatizados do frontend e backend
+  - Deploy automático para a instância de *staging* na AWS (via SSH)
+  - Atualização dos arquivos da API e do frontend com `composer install`, `php artisan migrate` e `npm run build`
+
+### Ambiente de Produção (`main`)
+- A cada push na branch `main`, o GitHub Actions:
+  - Reexecuta todos os testes
+  - Faz deploy automático para o servidor de *produção* na AWS
+  - Utiliza secrets seguros (`AWS_PROD_HOST`, `AWS_PROD_USER`, `AWS_PROD_SSH_KEY`) definidos no repositório
+
+### Segurança e Automação
+- O processo de deploy usa a action [`appleboy/ssh-action`](https://github.com/appleboy/ssh-action) com chave SSH segura
+- As variáveis sensíveis são armazenadas como **GitHub Secrets**
+- O deploy só ocorre se **todos os testes passarem**, garantindo entregas confiáveis
+
+Com isso, o projeto mantém **ambientes atualizados automaticamente**, reduzindo o risco de erro manual e acelerando o ciclo de entrega contínua.
+
 
 ## 📆 Instalação
 
