@@ -48,27 +48,43 @@ Sistema completo para gestão de clínicas veterinárias, desenvolvido com Larav
 - Axios (requisições HTTP)
 - Tailwind CSS (estilização)
 
-## ⚙️ Integração Contínua (CI) com GitHub Actions
+## ⚙️ Integração e Entrega Contínua (CI/CD) com GitHub Actions
 
-Este projeto utiliza **GitHub Actions** para executar testes unitários automaticamente a cada push nas branches `main` e `develop`, garantindo a qualidade do código.
+Este projeto utiliza **GitHub Actions** para implementar **Integração Contínua (CI)** e **Entrega Contínua (CD)**, garantindo qualidade de código e automação total do deploy em ambientes de staging e produção.
 
-### 📄 Workflow: `.github/workflows/main.yml`
+### Integração Contínua (CI)
 
-O pipeline contém as seguintes etapas:
+A cada push nas branches `main` e `develop`, o pipeline executa automaticamente:
 
-- ✅ **Checkout** do repositório
-- ✅ **Configuração do ambiente**:
-  - PHP 8.2 para o backend
-  - Node.js 20 para o frontend
-- ✅ **Instalação de dependências**:
-  - `composer install` no Laravel
-  - `npm install` no Vue.js
-- ✅ **Execução de testes unitários**:
+- **Checkout** do repositório
+- **Configuração de ambiente**:
+  - PHP 8.2 para o backend (Laravel)
+  - Node.js 20 para o frontend (Vue.js)
+- **Instalação de dependências**:
+  - `composer install` para o Laravel
+  - `npm install` para o Vue
+- **Execução de testes unitários**:
   - `php artisan test` para a API
-  - `npm run test` com Vitest para o frontend
-- ✅ O CI **falha automaticamente se houver erros nos testes**
+  - `npm run test` com Vitest no front
+- O CI **falha automaticamente se qualquer teste falhar**, bloqueando o deploy
 
-Esse processo garante a integridade do sistema a cada alteração no código.
+### Entrega Contínua (CD)
+
+Após os testes, o workflow executa o **deploy automático na AWS** com base na branch:
+
+#### Ambiente de Staging (`develop`)
+- Push em `develop` aciona:
+  - Execução dos testes
+  - Deploy automático para o servidor de staging (EC2 AWS)
+  - Atualização com: `composer install`, `php artisan migrate`, `npm run build`
+
+#### Ambiente de Produção (`main`)
+- Push em `main` aciona:
+  - Execução dos testes
+  - Deploy automático para o servidor de produção (EC2 AWS)
+  - Uso de secrets: `AWS_PROD_HOST`, `AWS_PROD_USER`, `AWS_PROD_SSH_KEY`
+
+Com essa configuração, o projeto entrega um fluxo confiável de desenvolvimento até produção, com qualidade validada automaticamente em cada etapa.
 
 ## 📆 Instalação
 
