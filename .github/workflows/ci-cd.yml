@@ -37,7 +37,7 @@ jobs:
 
       - name: Instalar dependências do Laravel
         run: |
-          cd backend
+          cd back-end
           composer install --no-progress
           cp .env.example .env
           php artisan key:generate
@@ -70,7 +70,7 @@ jobs:
 
       - name: Rodar testes frontend
         run: |
-          cd frontend
+          cd front-end
           npm install
           npm run test
 
