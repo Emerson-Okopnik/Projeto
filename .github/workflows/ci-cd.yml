@@ -11,13 +11,13 @@ jobs:
     name: Testes Laravel
     runs-on: ubuntu-latest
 
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: password
-          POSTGRES_DB: laravel
+  services:
+    postgres:
+      image: postgres:15
+      env:
+        POSTGRES_USER: postgres
+        POSTGRES_PASSWORD: password
+        POSTGRES_DB: laravel
       ports:
         - 5432:5432
       options: >-
