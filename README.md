@@ -84,12 +84,6 @@ Após os testes, o workflow executa o **deploy automático na AWS** com base na 
   - Deploy automático para o servidor de produção (EC2 AWS)
   - Uso de secrets: `AWS_PROD_HOST`, `AWS_PROD_USER`, `AWS_PROD_SSH_KEY`
 
-### Segurança e Automação
-
-- Deploy via [`appleboy/ssh-action`](https://github.com/appleboy/ssh-action)
-- Secrets sensíveis armazenados com **GitHub Secrets**
-- Deploy só ocorre se os testes passarem com sucesso ✅
-
 Com essa configuração, o projeto entrega um fluxo confiável de desenvolvimento até produção, com qualidade validada automaticamente em cada etapa.
 
 ## 📆 Instalação
