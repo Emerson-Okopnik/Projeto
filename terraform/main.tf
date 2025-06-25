@@ -25,7 +25,7 @@ resource "tls_private_key" "ec2_key" {
 }
 
 resource "aws_key_pair" "generated" {
-  key_name   = "clinica-veterinaria-key"
+  key_name   = "clinica-key"
   public_key = tls_private_key.ec2_key.public_key_openssh
 }
 
@@ -118,7 +118,7 @@ resource "aws_security_group" "instance_sg" {
     from_port   = var.api_port
     to_port     = var.api_port
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = [aws_vpc.main.cidr_block]
   }
 
   ingress {

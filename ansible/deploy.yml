@@ -2,7 +2,7 @@
 - hosts: frontend
   become: yes
   vars:
-    repo_url: "https://github.com/Emerson-Okopnik/clinica-veterinaria.git"
+    repo_url: "https://github.com/Emerson-Okopnik/Projeto.git"
   tasks:
     - name: Install Node.js and git
       apt:
@@ -34,7 +34,7 @@
 
     - name: Run frontend
       shell: |
-        npm run dev -- --host 0.0.0.0 --port {{ frontend_port | default(3000) }} &
+        npm run dev -- --host 0.0.0.0 --port {{ frontend_port | default(8000) }} &
       args:
         chdir: /home/ubuntu/app
       async: 0
@@ -44,7 +44,7 @@
 - hosts: backend
   become: yes
   vars:
-    repo_url: "https://github.com/Emerson-Okopnik/clinica-veterinaria.git"
+    repo_url: "https://github.com/Emerson-Okopnik/Projeto.git"
   tasks:
     - name: Add PHP 8.2 repository
       apt_repository:

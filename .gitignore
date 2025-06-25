@@ -1,12 +1,17 @@
-# Terraform state
+# Estado do Terraform
 terraform/terraform.tfstate
 terraform/terraform.tfstate.backup
-terraform/.terraform/        # pasta com plugins e cache local
+
+# Diretório de cache do Terraform e plugins baixados
+terraform/.terraform/
+
+# Lock file (opcional ignorar, mas alguns preferem versionar)
 terraform/.terraform.lock.hcl
 
-# SSH key
-terraform/vet-key.pem
+# Chave privada
+terraform/clinica-key.pem
+ansible/clinica-key.pem
 
-# Outros arquivos indesejados
+# Arquivos indesejados
 *.exe
 *.log
