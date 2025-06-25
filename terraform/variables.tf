@@ -19,7 +19,7 @@ variable "public_subnet_cidr" {
 variable "private_subnet_cidr" {
   description = "CIDR block for the private subnet"
   type        = string
-  default     = "10.0.2.0/24"
+  default     = "10.0.4.0/24"
 }
 
 variable "instance_type" {
@@ -37,5 +37,36 @@ variable "api_port" {
 variable "frontend_port" {
   description = "Port used by the frontend"
   type        = number
-  default     = 8000
+  default     = 3000
+}
+
+variable "db_name" {
+  description = "Nome do banco de dados PostgreSQL"
+  type        = string
+}
+
+
+variable "db_username" {
+  description = "Master username for the PostgreSQL database"
+  type        = string
+  default     = "postgres"
+}
+
+variable "db_password" {
+  description = "Master password for the PostgreSQL database"
+  type        = string
+  default     = "postgres"
+  sensitive   = true
+}
+
+variable "db_instance_class" {
+  description = "RDS instance class"
+  type        = string
+  default     = "db.t3.micro"
+}
+
+variable "db_allocated_storage" {
+  description = "Allocated storage for the database (GB)"
+  type        = number
+  default     = 20
 }

@@ -1,58 +1,27 @@
 ---
-- hosts: frontend
+- name: Provisionar e configurar o Laravel
+  hosts: backend
   become: yes
+
   vars:
-    repo_url: "https://github.com/Emerson-Okopnik/Projeto.git"
+    db_host: "clinica-postgres.c0vmw2ym8bt0.us-east-1.rds.amazonaws.com"
+    db_port: 5432
+    db_name: "laravel_db"
+    db_user: "laravel"
+    db_password: "postgre"
+
   tasks:
-    - name: Install Node.js and git
+    - name: Atualizar pacotes
       apt:
-        name:
-          - nodejs
-          - npm
-          - git
-        state: present
         update_cache: yes
 
-    - name: Clone full repository
-      git:
-        repo: "{{ repo_url }}"
-        dest: /home/ubuntu/temp-repo
-        version: main
-        force: yes
-        accept_hostkey: yes
-      become_user: ubuntu
-
-    - name: Move front-end folder to app
-      shell: mv /home/ubuntu/temp-repo/front-end /home/ubuntu/app
-      become_user: ubuntu
-
-    - name: Install frontend dependencies
-      npm:
-        path: /home/ubuntu/app
-        production: false
-      become_user: ubuntu
-
-    - name: Run frontend
-      shell: |
-        npm run dev -- --host 0.0.0.0 --port {{ frontend_port | default(8000) }} &
-      args:
-        chdir: /home/ubuntu/app
-      async: 0
-      poll: 0
-      become_user: ubuntu
-
-- hosts: backend
-  become: yes
-  vars:
-    repo_url: "https://github.com/Emerson-Okopnik/Projeto.git"
-  tasks:
-    - name: Add PHP 8.2 repository
+    - name: Adicionar repositório do PHP 8.2
       apt_repository:
         repo: ppa:ondrej/php
         state: present
         update_cache: yes
 
-    - name: Install PHP 8.2 and dependencies
+    - name: Instalar PHP 8.2, Nginx e dependências do Laravel
       apt:
         name:
           - php8.2
@@ -60,50 +29,252 @@
           - php8.2-common
           - php8.2-mbstring
           - php8.2-xml
-          - php8.2-curl
           - php8.2-bcmath
-          - php8.2-mysql
-          - php8.2-readline
-          - php8.2-zip
+          - php8.2-curl
+          - php8.2-pgsql
+          - php8.2-fpm
           - unzip
-          - git
           - curl
+          - git
+          - nginx
         state: present
 
-    - name: Install Composer
-      shell: |
-        curl -sS https://getcomposer.org/installer -o composer-setup.php
-        php composer-setup.php --install-dir=/usr/local/bin --filename=composer
-      args:
-        creates: /usr/local/bin/composer
-
-    - name: Clone full repository
+    - name: Clonar repositório do GitHub
       git:
-        repo: "{{ repo_url }}"
-        dest: /home/ubuntu/temp-repo
+        repo: 'https://github.com/Emerson-Okopnik/Projeto.git'
+        dest: /var/www/backend
         version: main
-        force: yes
-        accept_hostkey: yes
+
+    - name: Marcar diretório Git como seguro
+      command: git config --global --add safe.directory /var/www/backend
       become_user: ubuntu
 
-    - name: Copy back-end folder to app
-      shell: |
-        rm -rf /home/ubuntu/app
-        cp -r /home/ubuntu/temp-repo/back-end /home/ubuntu/app
-      become_user: ubuntu
+    - name: Garantir que o diretório do projeto é de propriedade do usuário ubuntu
+      file:
+        path: /var/www/backend/back-end
+        owner: ubuntu
+        group: ubuntu
+        recurse: yes
 
-    - name: Install backend dependencies
+    - name: Instalar dependências do Laravel
       composer:
-        command: install
-        working_dir: /home/ubuntu/app
-        ignore_platform_reqs: true
+        working_dir: /var/www/backend/back-end
+        no_dev: yes
+      become: true
       become_user: ubuntu
 
-    - name: Run backend
-      shell: |
-        php artisan serve --host 0.0.0.0 --port {{ api_port | default(8000) }} &
+    - name: Criar arquivo .env com configuração do PostgreSQL RDS
+      copy:
+        dest: /var/www/backend/back-end/.env
+        content: |
+          APP_NAME=Laravel
+          APP_ENV=production
+          APP_KEY=
+          APP_DEBUG=false
+          APP_URL=http://localhost
+
+          LOG_CHANNEL=stack
+          LOG_LEVEL=debug
+
+          DB_CONNECTION=pgsql
+          DB_HOST={{ db_host }}
+          DB_PORT={{ db_port }}
+          DB_DATABASE={{ db_name }}
+          DB_USERNAME={{ db_user }}
+          DB_PASSWORD={{ db_password }}
+
+          BROADCAST_DRIVER=log
+          CACHE_DRIVER=file
+          FILESYSTEM_DRIVER=local
+          QUEUE_CONNECTION=sync
+          SESSION_DRIVER=file
+          SESSION_LIFETIME=120
+
+    - name: Atualizar permissões do projeto
+      file:
+        path: /var/www/backend/back-end
+        recurse: yes
+        owner: www-data
+        group: www-data
+        state: directory
+
+    - name: Limpar cache de configuração do Laravel
+      command: php artisan config:clear
       args:
-        chdir: /home/ubuntu/app
-      async: 0
-      poll: 0
+        chdir: /var/www/backend/back-end
+
+    - name: Gerar chave da aplicação
+      command: php artisan key:generate
+      args:
+        chdir: /var/www/backend/back-end
+
+    - name: Rodar migrations
+      command: php artisan migrate --force
+      args:
+        chdir: /var/www/backend/back-end
+
+    - name: Configurar permissões de storage
+      file:
+        path: /var/www/backend/back-end/storage
+        state: directory
+        recurse: yes
+        owner: www-data
+        group: www-data
+        mode: '0775'
+
+    - name: Configurar Nginx para o Laravel
+      copy:
+        dest: /etc/nginx/sites-available/laravel
+        content: |
+          server {
+              listen 80;
+              server_name _;
+
+              root /var/www/backend/back-end/public;
+
+              index index.php index.html;
+
+              location / {
+                  try_files $uri $uri/ /index.php?$query_string;
+              }
+
+              location ~ \.php$ {
+                  include snippets/fastcgi-php.conf;
+                  fastcgi_pass unix:/var/run/php/php8.2-fpm.sock;
+                  fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+                  include fastcgi_params;
+              }
+
+              location ~ /\.ht {
+                  deny all;
+              }
+          }
+      notify: Restart Nginx
+
+    - name: Habilitar site do Laravel
+      file:
+        src: /etc/nginx/sites-available/laravel
+        dest: /etc/nginx/sites-enabled/laravel
+        state: link
+        force: yes
+
+    - name: Remover configuração padrão do Nginx
+      file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+
+  handlers:
+    - name: Restart Nginx
+      service:
+        name: nginx
+        state: restarted
+
+- name: Provisionar e configurar o Front-end Vue.js
+  hosts: frontend
+  become: yes
+
+  vars:
+    vue_repo: 'https://github.com/Emerson-Okopnik/Projeto.git'
+    vue_branch: 'main'
+    vue_app_dir: '/var/www/frontend'
+    vue_source_subdir: 'front-end'  # subpasta dentro do repositório
+    vue_dist_dir: 'dist'
+
+  tasks:
+    - name: Atualizar pacotes
+      apt:
+        update_cache: yes
+
+    - name: Instalar dependências para o Vue.js
+      apt:
+        name:
+          - curl
+          - git
+          - nginx
+          - nodejs
+          - npm
+        state: present
+
+    - name: Verificar versão do Node
+      command: node -v
+      register: node_version
+      ignore_errors: true
+
+    - name: Instalar Node.js via NVM se necessário
+      shell: |
+        curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+        export NVM_DIR="$HOME/.nvm"
+        source "$NVM_DIR/nvm.sh"
+        nvm install --lts
+      args:
+        executable: /bin/bash
+      when: "'v' not in node_version.stdout"
+
+    - name: Clonar repositório do Vue.js
+      git:
+        repo: "{{ vue_repo }}"
+        dest: "{{ vue_app_dir }}"
+        version: "{{ vue_branch }}"
+
+    - name: Garantir que o diretório do projeto Vue.js é de propriedade do ubuntu
+      file:
+        path: "{{ vue_app_dir }}"
+        owner: ubuntu
+        group: ubuntu
+        recurse: yes
+
+    - name: Instalar dependências do Vue.js
+      npm:
+        path: "{{ vue_app_dir }}/{{ vue_source_subdir }}"
+        production: yes
       become_user: ubuntu
+
+    - name: Compilar o projeto Vue.js (build de produção)
+      command: npm run build
+      args:
+        chdir: "{{ vue_app_dir }}/{{ vue_source_subdir }}"
+      become_user: ubuntu
+
+    - name: Copiar arquivos do build para o Nginx
+      copy:
+        src: "{{ vue_app_dir }}/{{ vue_source_subdir }}/{{ vue_dist_dir }}/"
+        dest: /var/www/html/
+        owner: www-data
+        group: www-data
+        mode: '0755'
+        remote_src: yes
+
+    - name: Configurar Nginx para o Vue.js
+      copy:
+        dest: /etc/nginx/sites-available/vue
+        content: |
+          server {
+              listen 80;
+              server_name _;
+
+              root /var/www/html;
+              index index.html index.htm;
+
+              location / {
+                  try_files $uri $uri/ /index.html;
+              }
+          }
+      notify: Restart Nginx Front
+
+    - name: Habilitar site do Vue.js
+      file:
+        src: /etc/nginx/sites-available/vue
+        dest: /etc/nginx/sites-enabled/vue
+        state: link
+        force: yes
+
+    - name: Remover configuração padrão do Nginx
+      file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+
+  handlers:
+    - name: Restart Nginx Front
+      service:
+        name: nginx
+        state: restarted

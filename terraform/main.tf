@@ -18,7 +18,7 @@ provider "aws" {
 
 data "aws_availability_zones" "available" {}
 
-# Generate SSH key pair
+# SSH key pair
 resource "tls_private_key" "ec2_key" {
   algorithm = "RSA"
   rsa_bits  = 4096
@@ -29,7 +29,7 @@ resource "aws_key_pair" "generated" {
   public_key = tls_private_key.ec2_key.public_key_openssh
 }
 
-# Networking
+# VPC
 resource "aws_vpc" "main" {
   cidr_block = var.vpc_cidr
   tags = {
@@ -41,41 +41,41 @@ resource "aws_internet_gateway" "igw" {
   vpc_id = aws_vpc.main.id
 }
 
-# Elastic IP for NAT Gateway
 resource "aws_eip" "nat" {
   domain = "vpc"
 }
 
-# NAT Gateway to allow outbound traffic from private subnet
-resource "aws_nat_gateway" "nat" {
-  allocation_id = aws_eip.nat.id
-  subnet_id     = aws_subnet.public.id
-
-  depends_on = [aws_internet_gateway.igw]
+resource "aws_subnet" "public_subnet_1" {
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = "10.0.1.0/24"
+  availability_zone       = "us-east-1a"
+  map_public_ip_on_launch = true
+  tags = { Name = "public-subnet-1" }
 }
 
-resource "aws_subnet" "public" {
+resource "aws_subnet" "public_subnet_2" {
   vpc_id                  = aws_vpc.main.id
-  cidr_block              = var.public_subnet_cidr
+  cidr_block              = "10.0.3.0/24"
+  availability_zone       = "us-east-1b"
   map_public_ip_on_launch = true
-  availability_zone       = data.aws_availability_zones.available.names[0]
-  tags = {
-    Name = "public-subnet"
-  }
+  tags = { Name = "public-subnet-2" }
 }
 
 resource "aws_subnet" "private" {
-  vpc_id            = aws_vpc.main.id
-  cidr_block        = var.private_subnet_cidr
-  availability_zone = data.aws_availability_zones.available.names[0]
-  tags = {
-    Name = "private-subnet"
-  }
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = var.private_subnet_cidr
+  availability_zone       = data.aws_availability_zones.available.names[0]
+  tags = { Name = "private-subnet" }
+}
+
+resource "aws_nat_gateway" "nat" {
+  allocation_id = aws_eip.nat.id
+  subnet_id = aws_subnet.public_subnet_1.id
+  depends_on    = [aws_internet_gateway.igw]
 }
 
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.main.id
-
   route {
     cidr_block = "0.0.0.0/0"
     gateway_id = aws_internet_gateway.igw.id
@@ -84,7 +84,6 @@ resource "aws_route_table" "public" {
 
 resource "aws_route_table" "private" {
   vpc_id = aws_vpc.main.id
-
   route {
     cidr_block     = "0.0.0.0/0"
     nat_gateway_id = aws_nat_gateway.nat.id
@@ -92,7 +91,7 @@ resource "aws_route_table" "private" {
 }
 
 resource "aws_route_table_association" "public" {
-  subnet_id      = aws_subnet.public.id
+  subnet_id = aws_subnet.public_subnet_1.id
   route_table_id = aws_route_table.public.id
 }
 
@@ -101,6 +100,7 @@ resource "aws_route_table_association" "private" {
   route_table_id = aws_route_table.private.id
 }
 
+# Security groups
 resource "aws_security_group" "instance_sg" {
   name   = "clinica-sg"
   vpc_id = aws_vpc.main.id
@@ -137,11 +137,30 @@ resource "aws_security_group" "instance_sg" {
   }
 }
 
-# Lookup latest Ubuntu AMI
+resource "aws_security_group" "db_sg" {
+  name   = "clinica-db-sg"
+  vpc_id = aws_vpc.main.id
 
+  ingress {
+    description = "PostgreSQL"
+    from_port   = 5432
+    to_port     = 5432
+    protocol    = "tcp"
+    cidr_blocks = [aws_vpc.main.cidr_block]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+# Ubuntu AMI
 data "aws_ami" "ubuntu" {
   most_recent = true
-  owners      = ["099720109477"] # Canonical
+  owners      = ["099720109477"]
 
   filter {
     name   = "name"
@@ -149,10 +168,11 @@ data "aws_ami" "ubuntu" {
   }
 }
 
+# EC2 Instances
 resource "aws_instance" "frontend" {
   ami                    = data.aws_ami.ubuntu.id
   instance_type          = var.instance_type
-  subnet_id              = aws_subnet.public.id
+ subnet_id               = aws_subnet.public_subnet_1.id
   key_name               = aws_key_pair.generated.key_name
   vpc_security_group_ids = [aws_security_group.instance_sg.id]
   user_data              = file("${path.module}/start-frontend.sh")
@@ -173,4 +193,30 @@ resource "aws_instance" "backend" {
   tags = {
     Name = "backend"
   }
+}
+
+# DB Subnet Group
+resource "aws_db_subnet_group" "db_subnet_group" {
+  name       = "clinica-db-subnet-group"
+  subnet_ids = [
+    aws_subnet.public_subnet_1.id,
+    aws_subnet.public_subnet_2.id
+  ]
+  tags = {
+    Name = "clinica-db-subnet-group"
+  }
+}
+
+# PostgreSQL RDS Instance
+resource "aws_db_instance" "postgres" {
+  identifier              = "clinica-postgres"
+  engine                  = "postgres"
+  instance_class          = var.db_instance_class
+  allocated_storage       = var.db_allocated_storage
+  db_name                 = var.db_name
+  username                = var.db_username
+  password                = var.db_password
+  db_subnet_group_name    = aws_db_subnet_group.db_subnet_group.name
+  vpc_security_group_ids  = [aws_security_group.db_sg.id]
+  skip_final_snapshot     = true
 }
