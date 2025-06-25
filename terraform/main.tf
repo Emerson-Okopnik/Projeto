@@ -25,7 +25,7 @@ resource "tls_private_key" "ec2_key" {
 }
 
 resource "aws_key_pair" "generated" {
-  key_name   = "vet-key"
+  key_name   = "clinica-veterinaria-key"
   public_key = tls_private_key.ec2_key.public_key_openssh
 }
 

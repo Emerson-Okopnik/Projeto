@@ -37,5 +37,5 @@ variable "api_port" {
 variable "frontend_port" {
   description = "Port used by the frontend"
   type        = number
-  default     = 3000
+  default     = 8000
 }
