@@ -1,0 +1,15 @@
+# Terraform state
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
+terraform/.terraform/        # pasta com plugins e cache local
+terraform/.terraform.lock.hcl
+
+# SSH key (NUNCA envie para o Git)
+terraform/vet-key.pem
+
+# Arquivos temporários ou scripts locais (opcional)
+terraform/*.sh
+
+# Outros arquivos indesejados
+*.exe
+*.log
