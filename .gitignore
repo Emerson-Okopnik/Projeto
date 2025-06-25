@@ -7,9 +7,6 @@ terraform/.terraform.lock.hcl
 # SSH key (NUNCA envie para o Git)
 terraform/vet-key.pem
 
-# Arquivos temporários ou scripts locais (opcional)
-terraform/*.sh
-
 # Outros arquivos indesejados
 *.exe
 *.log
