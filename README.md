@@ -91,7 +91,7 @@ Com essa configuração, o projeto entrega um fluxo confiável de desenvolviment
 ### Backend
 
 ```bash
-cd backend
+cd back-end
 composer install
 cp .env.example .env
 php artisan key:generate
@@ -122,7 +122,7 @@ php artisan serve
 ### Frontend
 
 ```bash
-cd frontend
+cd front-end
 npm install
 cp .env.example .env
 npm run dev
@@ -164,14 +164,6 @@ Para facilitar os testes da API, importe o arquivo
 `documentos/clinica-veterinaria.postman_collection.json` no Postman.
 Defina a variável `baseUrl` com a URL do backend (ex.: `http://localhost:8000`)
 e utilize a variável `token` após autenticar-se.
-
-## 👥 Contribuição
-
-1. Fork o projeto
-2. Crie sua branch: `git checkout -b feature/NomeFeature`
-3. Commit: `git commit -m 'Minha feature'`
-4. Push: `git push origin feature/NomeFeature`
-5. Abra um Pull Request
 
 ## 📄 Licença
 
