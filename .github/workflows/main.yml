@@ -75,39 +75,33 @@ jobs:
           npm run test
 
   deploy:
-    name: Deploy AWS
+    name: Deploy AWS com Ansible
     needs: [laravel-tests, vue-tests]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
 
     steps:
-      - name: Checkout
+      - name: Checkout do repositório
         uses: actions/checkout@v4
 
-      - name: Deploy para AWS via SSH
-        uses: appleboy/ssh-action@v1.0.0
-        with:
-          host: ${{ github.ref == 'refs/heads/main' && secrets.AWS_PROD_HOST || secrets.AWS_STAGING_HOST }}
-          username: ${{ github.ref == 'refs/heads/main' && secrets.AWS_PROD_USER || secrets.AWS_STAGING_USER }}
-          key: ${{ github.ref == 'refs/heads/main' && secrets.AWS_PROD_SSH_KEY || secrets.AWS_STAGING_SSH_KEY }}
-          script: |
-            echo "🔄 Iniciando deploy na AWS..."
-            if [ "${{ github.ref }}" == "refs/heads/main" ]; then
-              cd /var/www/producao-back-end
-            else
-              cd /var/www/staging-back-end
-            fi
-            git pull origin ${{ github.ref_name }}
-            composer install --no-dev
-            php artisan migrate --force
-            php artisan config:cache
+      - name: Instalar Ansible
+        run: |
+          sudo apt update
+          sudo apt install -y ansible
 
-            echo "➡️ Deploy Front-end"
-            if [ "${{ github.ref }}" == "refs/heads/main" ]; then
-              cd /var/www/producao-front-end
-            else
-              cd /var/www/staging-front-end
-            fi
-            git pull origin ${{ github.ref_name }}
-            npm install
-            npm run build
+      - name: Criar chave privada para Ansible
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ github.ref == 'refs/heads/main' && secrets.ANSIBLE_PROD_KEY || secrets.ANSIBLE_STAGING_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+
+      - name: Configurar inventário
+        run: |
+          echo "[frontend]" > inventory.ini
+          echo "${{ github.ref == 'refs/heads/main' && secrets.ANSIBLE_PROD_FRONTEND_HOST || secrets.ANSIBLE_STAGING_FRONTEND_HOST }}" >> inventory.ini
+          echo "[backend]" >> inventory.ini
+          echo "${{ github.ref == 'refs/heads/main' && secrets.ANSIBLE_PROD_BACKEND_HOST || secrets.ANSIBLE_STAGING_BACKEND_HOST }}" >> inventory.ini
+
+      - name: Rodar playbook do Ansible
+        run: |
+          ansible-playbook -i inventory.ini deploy.yml
