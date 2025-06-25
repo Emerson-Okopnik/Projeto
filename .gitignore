@@ -4,7 +4,7 @@ terraform/terraform.tfstate.backup
 terraform/.terraform/        # pasta com plugins e cache local
 terraform/.terraform.lock.hcl
 
-# SSH key (NUNCA envie para o Git)
+# SSH key
 terraform/vet-key.pem
 
 # Outros arquivos indesejados
