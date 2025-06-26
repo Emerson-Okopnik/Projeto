@@ -6,9 +6,9 @@
   vars:
     db_host: "clinica-postgres.c0vmw2ym8bt0.us-east-1.rds.amazonaws.com"
     db_port: 5432
-    db_name: "laravel_db"
-    db_user: "laravel"
-    db_password: "postgre"
+    db_name: "laravel"
+    db_user: "postgres"
+    db_password: "postgres"
 
   tasks:
     - name: Atualizar pacotes
@@ -44,6 +44,7 @@
         repo: 'https://github.com/Emerson-Okopnik/Projeto.git'
         dest: /var/www/backend
         version: main
+        force: yes
 
     - name: Marcar diretório Git como seguro
       command: git config --global --add safe.directory /var/www/backend
@@ -55,6 +56,13 @@
         owner: ubuntu
         group: ubuntu
         recurse: yes
+
+    - name: Instalar Composer
+      shell: |
+        curl -sS https://getcomposer.org/installer | php
+        mv composer.phar /usr/local/bin/composer
+      args:
+        creates: /usr/local/bin/composer
 
     - name: Instalar dependências do Laravel
       composer:
@@ -222,18 +230,59 @@
         owner: ubuntu
         group: ubuntu
         recurse: yes
+    
+    - name: Remover Node.js e npm instalados via APT (se existirem)
+      apt:
+        name:
+          - nodejs
+          - npm
+        state: absent
+      ignore_errors: yes
 
-    - name: Instalar dependências do Vue.js
-      npm:
-        path: "{{ vue_app_dir }}/{{ vue_source_subdir }}"
-        production: yes
+    - name: Instalar dependências para NVM
+      apt:
+        name:
+          - curl
+          - git
+          - build-essential
+        state: present
+
+    - name: Instalar Node.js via NVM (v18 LTS)
+      shell: |
+        export NVM_DIR=/home/ubuntu/.nvm
+        curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+        source $NVM_DIR/nvm.sh
+        nvm install 18
+        nvm use 18
+        nvm alias default 18
+      args:
+        executable: /bin/bash
       become_user: ubuntu
+      environment:
+        HOME: /home/ubuntu
+
+    - name: Verificar se node e npm estão acessíveis
+      shell: |
+        source /home/ubuntu/.nvm/nvm.sh && node -v && npm -v
+      args:
+        executable: /bin/bash
+      become_user: ubuntu
+
 
     - name: Compilar o projeto Vue.js (build de produção)
-      command: npm run build
+      shell: |
+        export NVM_DIR=/home/ubuntu/.nvm
+        source $NVM_DIR/nvm.sh
+        nvm use 18
+        npm run build
       args:
         chdir: "{{ vue_app_dir }}/{{ vue_source_subdir }}"
+        executable: /bin/bash
+      become: true
       become_user: ubuntu
+      environment:
+        NVM_DIR: "/home/ubuntu/.nvm"
+        HOME: "/home/ubuntu"
 
     - name: Copiar arquivos do build para o Nginx
       copy:
