@@ -1,4 +1,3 @@
----
 - name: Provisionar e configurar o Laravel
   hosts: backend
   become: yes
@@ -9,6 +8,8 @@
     db_name: "laravel"
     db_user: "postgres"
     db_password: "postgres"
+    url_front: "http://35.175.117.217/"
+    url_back: "http://54.159.197.139/"
 
   tasks:
     - name: Atualizar pacotes
@@ -39,6 +40,11 @@
           - nginx
         state: present
 
+    - name: Verificar versão do PHP
+      command: php -v
+      register: php_version
+      ignore_errors: yes
+
     - name: Clonar repositório do GitHub
       git:
         repo: 'https://github.com/Emerson-Okopnik/Projeto.git'
@@ -64,7 +70,7 @@
       args:
         creates: /usr/local/bin/composer
 
-    - name: Instalar dependências do Laravel
+    - name: Instalar dependências do Laravel com Composer
       composer:
         working_dir: /var/www/backend/back-end
         no_dev: yes
@@ -79,7 +85,7 @@
           APP_ENV=production
           APP_KEY=
           APP_DEBUG=false
-          APP_URL=http://localhost
+          APP_URL={{ url_front }}
 
           LOG_CHANNEL=stack
           LOG_LEVEL=debug
@@ -98,13 +104,22 @@
           SESSION_DRIVER=file
           SESSION_LIFETIME=120
 
-    - name: Atualizar permissões do projeto
+    - name: Garantir permissões corretas no projeto
       file:
         path: /var/www/backend/back-end
         recurse: yes
         owner: www-data
         group: www-data
         state: directory
+
+    - name: Garantir permissões em bootstrap/cache
+      file:
+        path: /var/www/backend/back-end/bootstrap/cache
+        state: directory
+        recurse: yes
+        owner: www-data
+        group: www-data
+        mode: '0775'
 
     - name: Limpar cache de configuração do Laravel
       command: php artisan config:clear
@@ -113,6 +128,31 @@
 
     - name: Gerar chave da aplicação
       command: php artisan key:generate
+      args:
+        chdir: /var/www/backend/back-end
+
+    - name: Instalar o pacote JWT Auth
+      command: composer require tymon/jwt-auth
+      args:
+        chdir: /var/www/backend/back-end
+
+    - name: Publicar o config do JWT Auth
+      command: php artisan vendor:publish --provider="Tymon\JWTAuth\Providers\LaravelServiceProvider"
+      args:
+        chdir: /var/www/backend/back-end
+
+    - name: Gerar JWT_SECRET
+      command: php artisan jwt:secret --force
+      args:
+        chdir: /var/www/backend/back-end
+
+    - name: Limpar cache de configuração
+      command: php artisan config:clear
+      args:
+        chdir: /var/www/backend/back-end
+
+    - name: Atualizar cache de configuração
+      command: php artisan config:cache
       args:
         chdir: /var/www/backend/back-end
 
@@ -171,11 +211,19 @@
         path: /etc/nginx/sites-enabled/default
         state: absent
 
+    - name: Verificar status da API no localhost
+      uri:
+        url: http://localhost
+        status_code: 200
+      ignore_errors: yes
+      register: api_health
+
   handlers:
     - name: Restart Nginx
       service:
         name: nginx
         state: restarted
+
 
 - name: Provisionar e configurar o Front-end Vue.js
   hosts: frontend
@@ -185,67 +233,31 @@
     vue_repo: 'https://github.com/Emerson-Okopnik/Projeto.git'
     vue_branch: 'main'
     vue_app_dir: '/var/www/frontend'
-    vue_source_subdir: 'front-end'  # subpasta dentro do repositório
+    vue_source_subdir: 'front-end'
     vue_dist_dir: 'dist'
+    vue_build_dir: "{{ vue_app_dir }}/{{ vue_source_subdir }}/{{ vue_dist_dir }}"
 
   tasks:
     - name: Atualizar pacotes
       apt:
         update_cache: yes
 
-    - name: Instalar dependências para o Vue.js
+    - name: Instalar pacotes base necessários
       apt:
         name:
           - curl
           - git
           - nginx
-          - nodejs
-          - npm
+          - build-essential
         state: present
 
-    - name: Verificar versão do Node
-      command: node -v
-      register: node_version
-      ignore_errors: true
-
-    - name: Instalar Node.js via NVM se necessário
-      shell: |
-        curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
-        export NVM_DIR="$HOME/.nvm"
-        source "$NVM_DIR/nvm.sh"
-        nvm install --lts
-      args:
-        executable: /bin/bash
-      when: "'v' not in node_version.stdout"
-
-    - name: Clonar repositório do Vue.js
-      git:
-        repo: "{{ vue_repo }}"
-        dest: "{{ vue_app_dir }}"
-        version: "{{ vue_branch }}"
-
-    - name: Garantir que o diretório do projeto Vue.js é de propriedade do ubuntu
-      file:
-        path: "{{ vue_app_dir }}"
-        owner: ubuntu
-        group: ubuntu
-        recurse: yes
-    
-    - name: Remover Node.js e npm instalados via APT (se existirem)
+    - name: Remover Node.js e npm instalados via APT (caso existam)
       apt:
         name:
           - nodejs
           - npm
         state: absent
       ignore_errors: yes
-
-    - name: Instalar dependências para NVM
-      apt:
-        name:
-          - curl
-          - git
-          - build-essential
-        state: present
 
     - name: Instalar Node.js via NVM (v18 LTS)
       shell: |
@@ -261,15 +273,38 @@
       environment:
         HOME: /home/ubuntu
 
-    - name: Verificar se node e npm estão acessíveis
+    - name: Clonar repositório do Vue.js
+      git:
+        repo: "{{ vue_repo }}"
+        dest: "{{ vue_app_dir }}"
+        version: "{{ vue_branch }}"
+
+    - name: Garantir que o diretório do projeto Vue.js é de propriedade do ubuntu
+      file:
+        path: "{{ vue_app_dir }}"
+        owner: ubuntu
+        group: ubuntu
+        recurse: yes
+
+    - name: Instalar dependências do Vue.js
       shell: |
-        source /home/ubuntu/.nvm/nvm.sh && node -v && npm -v
+        export NVM_DIR=/home/ubuntu/.nvm
+        source $NVM_DIR/nvm.sh
+        nvm use 18
+        npm install
       args:
+        chdir: "{{ vue_app_dir }}/{{ vue_source_subdir }}"
         executable: /bin/bash
       become_user: ubuntu
 
+    - name: Criar arquivo .env apontando para a API (backend público)
+      copy:
+        dest: "{{ vue_app_dir }}/{{ vue_source_subdir }}/.env"
+        content: |
+          VITE_API_BASE_URL= {{url_back}}
+      become_user: ubuntu
 
-    - name: Compilar o projeto Vue.js (build de produção)
+    - name: Compilar o projeto Vue.js
       shell: |
         export NVM_DIR=/home/ubuntu/.nvm
         source $NVM_DIR/nvm.sh
@@ -278,15 +313,34 @@
       args:
         chdir: "{{ vue_app_dir }}/{{ vue_source_subdir }}"
         executable: /bin/bash
-      become: true
       become_user: ubuntu
-      environment:
-        NVM_DIR: "/home/ubuntu/.nvm"
-        HOME: "/home/ubuntu"
+
+    - name: Verificar se build foi gerado corretamente
+      stat:
+        path: "{{ vue_build_dir }}/index.html"
+      register: build_result
+
+    - name: Falhar caso o build do Vue.js não tenha sido criado
+      fail:
+        msg: "Build não encontrado em {{ vue_build_dir }}"
+      when: not build_result.stat.exists
+
+    - name: Remover conteúdo antigo da pasta pública
+      file:
+        path: /var/www/html/
+        state: absent
+
+    - name: Criar novamente a pasta pública do Nginx
+      file:
+        path: /var/www/html/
+        state: directory
+        owner: www-data
+        group: www-data
+        mode: '0755'
 
     - name: Copiar arquivos do build para o Nginx
       copy:
-        src: "{{ vue_app_dir }}/{{ vue_source_subdir }}/{{ vue_dist_dir }}/"
+        src: "{{ vue_build_dir }}/"
         dest: /var/www/html/
         owner: www-data
         group: www-data

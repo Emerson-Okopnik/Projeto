@@ -41,10 +41,6 @@ resource "aws_internet_gateway" "igw" {
   vpc_id = aws_vpc.main.id
 }
 
-resource "aws_eip" "nat" {
-  domain = "vpc"
-}
-
 resource "aws_subnet" "public_subnet_1" {
   vpc_id                  = aws_vpc.main.id
   cidr_block              = "10.0.1.0/24"
@@ -61,19 +57,6 @@ resource "aws_subnet" "public_subnet_2" {
   tags = { Name = "public-subnet-2" }
 }
 
-resource "aws_subnet" "private" {
-  vpc_id                  = aws_vpc.main.id
-  cidr_block              = var.private_subnet_cidr
-  availability_zone       = data.aws_availability_zones.available.names[0]
-  tags = { Name = "private-subnet" }
-}
-
-resource "aws_nat_gateway" "nat" {
-  allocation_id = aws_eip.nat.id
-  subnet_id = aws_subnet.public_subnet_1.id
-  depends_on    = [aws_internet_gateway.igw]
-}
-
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.main.id
   route {
@@ -82,49 +65,33 @@ resource "aws_route_table" "public" {
   }
 }
 
-resource "aws_route_table" "private" {
-  vpc_id = aws_vpc.main.id
-  route {
-    cidr_block     = "0.0.0.0/0"
-    nat_gateway_id = aws_nat_gateway.nat.id
-  }
-}
-
 resource "aws_route_table_association" "public" {
-  subnet_id = aws_subnet.public_subnet_1.id
+  subnet_id      = aws_subnet.public_subnet_1.id
   route_table_id = aws_route_table.public.id
 }
 
-resource "aws_route_table_association" "private" {
-  subnet_id      = aws_subnet.private.id
-  route_table_id = aws_route_table.private.id
+resource "aws_route_table_association" "public_subnet_2" {
+  subnet_id      = aws_subnet.public_subnet_2.id
+  route_table_id = aws_route_table.public.id
 }
 
 # Security groups
-resource "aws_security_group" "instance_sg" {
-  name   = "clinica-sg"
+resource "aws_security_group" "frontend_sg" {
+  name   = "frontend-sg"
   vpc_id = aws_vpc.main.id
 
   ingress {
-    description = "SSH"
-    from_port   = 22
-    to_port     = 22
+    description = "Allow HTTP from internet"
+    from_port   = 80
+    to_port     = 80
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
   ingress {
-    description = "API access"
-    from_port   = var.api_port
-    to_port     = var.api_port
-    protocol    = "tcp"
-    cidr_blocks = [aws_vpc.main.cidr_block]
-  }
-
-  ingress {
-    description = "Frontend access"
-    from_port   = var.frontend_port
-    to_port     = var.frontend_port
+    description = "Allow SSH"
+    from_port   = 22
+    to_port     = 22
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -135,7 +102,52 @@ resource "aws_security_group" "instance_sg" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+  tags = {
+    Name = "frontend-sg"
+  }
 }
+
+resource "aws_security_group" "backend_sg" {
+  name   = "backend-sg"
+  vpc_id = aws_vpc.main.id
+
+  ingress {
+    description = "Allow HTTP from anywhere"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description     = "Allow API dev port from frontend"
+    from_port       = var.api_port
+    to_port         = var.api_port
+    protocol        = "tcp"
+    security_groups = [aws_security_group.frontend_sg.id]
+  }
+
+  ingress {
+    description = "Allow SSH"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "backend-sg"
+  }
+}
+
 
 resource "aws_security_group" "db_sg" {
   name   = "clinica-db-sg"
@@ -172,10 +184,9 @@ data "aws_ami" "ubuntu" {
 resource "aws_instance" "frontend" {
   ami                    = data.aws_ami.ubuntu.id
   instance_type          = var.instance_type
- subnet_id               = aws_subnet.public_subnet_1.id
+  subnet_id              = aws_subnet.public_subnet_1.id
   key_name               = aws_key_pair.generated.key_name
-  vpc_security_group_ids = [aws_security_group.instance_sg.id]
-  user_data              = file("${path.module}/start-frontend.sh")
+  vpc_security_group_ids = [aws_security_group.frontend_sg.id]
 
   tags = {
     Name = "frontend"
@@ -185,10 +196,9 @@ resource "aws_instance" "frontend" {
 resource "aws_instance" "backend" {
   ami                    = data.aws_ami.ubuntu.id
   instance_type          = var.instance_type
-  subnet_id              = aws_subnet.private.id
+  subnet_id              = aws_subnet.public_subnet_2.id
   key_name               = aws_key_pair.generated.key_name
-  vpc_security_group_ids = [aws_security_group.instance_sg.id]
-  user_data              = file("${path.module}/start-backend.sh")
+  vpc_security_group_ids = [aws_security_group.backend_sg.id]
 
   tags = {
     Name = "backend"
