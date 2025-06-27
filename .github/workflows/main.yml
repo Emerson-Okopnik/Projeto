@@ -87,7 +87,7 @@ jobs:
       - name: Criar chave privada para Ansible
         run: |
           mkdir -p ~/.ssh
-          echo "${{ github.ref == 'refs/heads/main' && secrets.ANSIBLE_PROD_KEY || secrets.ANSIBLE_STAGING_KEY }}" | tr -d '\r' > ~/.ssh/id_rsa
+          echo "${{ github.ref == 'refs/heads/main' && secrets.ANSIBLE_PROD_KEY || secrets.ANSIBLE_STAGING_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
 
       - name: Rodar playbook do Ansible
