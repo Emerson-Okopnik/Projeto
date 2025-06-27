@@ -85,7 +85,7 @@ jobs:
           sudo apt install -y ansible
 
       - name: Dar permissão à chave PEM
-        run: chmod 600 ansible/clinica-key.pem
+        run: chmod 600 ./ansible/clinica-key.pem
 
       - name: Configurar inventário do Ansible
         run: |
