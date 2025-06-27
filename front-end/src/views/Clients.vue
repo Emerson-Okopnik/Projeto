@@ -99,7 +99,7 @@
     </div>
 
     <!-- Pagination -->
-    <div v-if="pagination.total > pagination.per_page" class="mt-6">
+    <div v-if="pagination && pagination.total && pagination.per_page && pagination.total > pagination.per_page" class="mt-6">
       <nav class="flex items-center justify-between">
         <div class="flex-1 flex justify-between sm:hidden">
           <button
