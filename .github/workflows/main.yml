@@ -87,7 +87,7 @@ jobs:
       - name: Dar permissão à chave PEM
         run: chmod 600 ansible/clinica-key.pem
 
-      - name: Criar arquivo de inventário
+      - name: Configurar inventário do Ansible
         run: |
           echo "[frontend]" > ansible/inventory.ini
           echo "frontend ansible_host=${{ github.ref == 'refs/heads/main' && secrets.ANSIBLE_PROD_FRONTEND_HOST || secrets.ANSIBLE_STAGING_FRONTEND_HOST }} ansible_user=ubuntu ansible_ssh_private_key_file=ansible/clinica-key.pem" >> ansible/inventory.ini
