@@ -250,13 +250,6 @@
         path: /etc/nginx/sites-enabled/default
         state: absent
 
-    - name: Verificar status da API no localhost
-      uri:
-        url: http://localhost
-        status_code: 200
-      ignore_errors: yes
-      register: api_health
-
   handlers:
     - name: Restart Nginx
       service:
