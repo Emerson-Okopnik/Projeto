@@ -8,7 +8,7 @@
     db_name: "laravel"
     db_user: "postgres"
     db_password: "postgres"
-    url_back: "http://54.159.197.139/api"
+    url_back: "http://54.159.197.139"
 
   tasks:
     - name: Atualizar pacotes
