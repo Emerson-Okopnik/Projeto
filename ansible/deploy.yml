@@ -8,7 +8,7 @@
     db_name: "laravel"
     db_user: "postgres"
     db_password: "postgres"
-    url_front: "http://35.175.117.217/"
+    url_front: "http://54.159.197.139/"
 
   tasks:
     - name: Atualizar pacotes
