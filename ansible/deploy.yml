@@ -343,10 +343,12 @@
           VITE_API_BASE_URL={{url_back}}
       become_user: ubuntu
 
-    - name: Remover diretório dist antigo
-      file:
-        path: "{{ vue_app_dir }}/{{ vue_source_subdir }}/dist"
-        state: absent
+    - name: Forçar remoção do diretório dist antigo (caso exista)
+      shell: rm -rf dist
+      args:
+        chdir: "{{ vue_app_dir }}/{{ vue_source_subdir }}"
+        executable: /bin/bash
+      become_user: ubuntu
 
     - name: Compilar o projeto Vue.js
       shell: |
