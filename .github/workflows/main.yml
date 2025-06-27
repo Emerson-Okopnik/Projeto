@@ -69,33 +69,34 @@ jobs:
           npm install
           npm run test
 
-    deploy:
-      name: Deploy AWS com Ansible
-      needs: [laravel-tests, vue-tests]
-      runs-on: ubuntu-latest
-      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+  deploy:
+    name: Deploy AWS com Ansible
+    needs: [laravel-tests, vue-tests]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
 
-      steps:
-        - name: Checkout do repositório
-          uses: actions/checkout@v4
+    steps:
+      - name: Checkout do repositório
+        uses: actions/checkout@v4
 
-        - name: Instalar Ansible
-          run: |
-            sudo apt update
-            sudo apt install -y ansible
+      - name: Instalar Ansible
+        run: |
+          sudo apt update
+          sudo apt install -y ansible
 
-        - name: Dar permissão à chave PEM
-          run: chmod 600 ansible/clinica-key.pem
+      - name: Dar permissão à chave PEM
+        run: chmod 600 ansible/clinica-key.pem
 
-        - name: Criar arquivo de inventário
-          run: |
-            echo "[frontend]" > ansible/inventory.ini
-            echo "frontend ansible_host=${{ github.ref == 'refs/heads/main' && secrets.ANSIBLE_PROD_FRONTEND_HOST || secrets.ANSIBLE_STAGING_FRONTEND_HOST }} ansible_user=ubuntu ansible_ssh_private_key_file=ansible/clinica-key.pem" >> ansible/inventory.ini
-            echo "[backend]" >> ansible/inventory.ini
-            echo "backend ansible_host=${{ github.ref == 'refs/heads/main' && secrets.ANSIBLE_PROD_BACKEND_HOST || secrets.ANSIBLE_STAGING_BACKEND_HOST }} ansible_user=ubuntu ansible_ssh_private_key_file=ansible/clinica-key.pem" >> ansible/inventory.ini
+      - name: Criar arquivo de inventário
+        run: |
+          echo "[frontend]" > ansible/inventory.ini
+          echo "frontend ansible_host=${{ github.ref == 'refs/heads/main' && secrets.ANSIBLE_PROD_FRONTEND_HOST || secrets.ANSIBLE_STAGING_FRONTEND_HOST }} ansible_user=ubuntu ansible_ssh_private_key_file=ansible/clinica-key.pem" >> ansible/inventory.ini
+          echo "[backend]" >> ansible/inventory.ini
+          echo "backend ansible_host=${{ github.ref == 'refs/heads/main' && secrets.ANSIBLE_PROD_BACKEND_HOST || secrets.ANSIBLE_STAGING_BACKEND_HOST }} ansible_user=ubuntu ansible_ssh_private_key_file=ansible/clinica-key.pem" >> ansible/inventory.ini
 
-        - name: Rodar playbook do Ansible
-          run: |
-            ansible-playbook -i ansible/inventory.ini ansible/deploy.yml
-          env:
-            ANSIBLE_HOST_KEY_CHECKING: "False"
+      - name: Rodar playbook do Ansible
+        run: |
+          ansible-playbook -i ansible/inventory.ini ansible/deploy.yml
+        env:
+          ANSIBLE_HOST_KEY_CHECKING: "False"
+
