@@ -104,4 +104,4 @@ jobs:
 
       - name: Rodar playbook do Ansible
         run: |
-          ansible-playbook -i inventory.ini deploy.yml
+          ansible-playbook -i inventory.ini ansible/deploy.yml
