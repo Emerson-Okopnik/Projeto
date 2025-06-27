@@ -9,7 +9,6 @@
     db_user: "postgres"
     db_password: "postgres"
     url_front: "http://35.175.117.217/"
-    url_back: "http://54.159.197.139/"
 
   tasks:
     - name: Atualizar pacotes
@@ -130,6 +129,40 @@
       command: php artisan key:generate
       args:
         chdir: /var/www/backend/back-end
+    
+    - name: Criar vendor/ se não existir
+      file:
+        path: /var/www/backend/back-end/vendor
+        state: directory
+        owner: ubuntu
+        group: ubuntu
+        mode: '0775'
+
+    - name: Garantir permissões para vendor/
+      file:
+        path: /var/www/backend/back-end/vendor
+        recurse: yes
+        owner: ubuntu
+        group: ubuntu
+        mode: '0775'
+    
+    - name: Garantir que composer.json e composer.lock sejam editáveis
+      file:
+        path: "{{ item }}"
+        owner: ubuntu
+        group: ubuntu
+        mode: '0664'
+      loop:
+        - /var/www/backend/back-end/composer.json
+        - /var/www/backend/back-end/composer.lock
+   
+    - name: Garantir permissões totais para o Laravel funcionar corretamente
+      file:
+        path: /var/www/backend/back-end
+        recurse: yes
+        owner: ubuntu
+        group: www-data
+        mode: '0775'
 
     - name: Instalar o pacote JWT Auth
       command: composer require tymon/jwt-auth --no-interaction
@@ -139,14 +172,14 @@
       become_user: ubuntu
 
     - name: Publicar o config do JWT Auth
-      command: php artisan vendor:publish --provider="Tymon\JWTAuth\Providers\LaravelServiceProvider" --force
+      command: php artisan vendor:publish --provider="Tymon\JWTAuth\Providers\LaravelServiceProvider"
       args:
         chdir: /var/www/backend/back-end
       become: true
       become_user: ubuntu
 
     - name: Gerar JWT_SECRET
-      command: php artisan jwt:secret --force
+      command: sudo php artisan jwt:secret
       args:
         chdir: /var/www/backend/back-end
       become: true
@@ -242,6 +275,7 @@
     vue_source_subdir: 'front-end'
     vue_dist_dir: 'dist'
     vue_build_dir: "{{ vue_app_dir }}/{{ vue_source_subdir }}/{{ vue_dist_dir }}"
+    url_back: "http://54.159.197.139/"
 
   tasks:
     - name: Atualizar pacotes
@@ -278,12 +312,18 @@
       become_user: ubuntu
       environment:
         HOME: /home/ubuntu
+    
+    - name: Remover diretório existente do Vue.js (para garantir clone limpo)
+      file:
+        path: "{{ vue_app_dir }}"
+        state: absent
 
     - name: Clonar repositório do Vue.js
       git:
         repo: "{{ vue_repo }}"
         dest: "{{ vue_app_dir }}"
         version: "{{ vue_branch }}"
+        force: yes
 
     - name: Garantir que o diretório do projeto Vue.js é de propriedade do ubuntu
       file:
