@@ -132,19 +132,25 @@
         chdir: /var/www/backend/back-end
 
     - name: Instalar o pacote JWT Auth
-      command: composer require tymon/jwt-auth
+      command: composer require tymon/jwt-auth --no-interaction
       args:
         chdir: /var/www/backend/back-end
+      become: true
+      become_user: ubuntu
 
     - name: Publicar o config do JWT Auth
-      command: php artisan vendor:publish --provider="Tymon\JWTAuth\Providers\LaravelServiceProvider"
+      command: php artisan vendor:publish --provider="Tymon\JWTAuth\Providers\LaravelServiceProvider" --force
       args:
         chdir: /var/www/backend/back-end
+      become: true
+      become_user: ubuntu
 
     - name: Gerar JWT_SECRET
       command: php artisan jwt:secret --force
       args:
         chdir: /var/www/backend/back-end
+      become: true
+      become_user: ubuntu
 
     - name: Limpar cache de configuração
       command: php artisan config:clear
