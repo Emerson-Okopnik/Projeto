@@ -290,7 +290,7 @@ const loadReports = async () => {
       totalAppointments,
       completedAppointments,
       totalRevenue: totalRevenue.toFixed(2).replace('.', ','),
-      newClients: 0 // This would need to be calculated based on client creation dates
+      newClients: 0
     }
 
   } catch (error) {
