@@ -86,6 +86,43 @@ Após os testes, o workflow executa o **deploy automático na AWS** com base na 
 
 Com essa configuração, o projeto entrega um fluxo confiável de desenvolvimento até produção, com qualidade validada automaticamente em cada etapa.
 
+Antes do primeiro deploy, é necessário **provisionar a infraestrutura na AWS com Terraform** (veja a próxima seção). O pipeline assume que as instâncias e o banco já foram criados e que a chave SSH gerada está cadastrada nos secrets do repositório.
+
+## ☁️ Provisionamento de Infraestrutura com Terraform
+
+O diretório `terraform` contém os manifests que criam toda a infraestrutura necessária na AWS:
+
+- VPC com sub-redes públicas
+- Grupos de segurança
+- Instâncias EC2 para **frontend** e **backend**
+- Banco de dados PostgreSQL via RDS
+- Par de chaves SSH usado pelo Ansible
+
+### Passo a passo
+
+1. Instale o [Terraform](https://www.terraform.io/) e configure suas credenciais AWS (`aws configure` ou variáveis de ambiente).
+2. Acesse a pasta do Terraform:
+
+   ```bash
+   cd terraform
+   ```
+3. Defina os valores obrigatórios criando um arquivo `terraform.tfvars` (exemplo):
+
+   ```hcl
+   db_name     = "laravel"
+   db_username = "postgres"
+   db_password = "postgres"
+   ```
+4. Inicialize e aplique o plano:
+
+   ```bash
+   terraform init
+   terraform plan
+   terraform apply
+   ```
+
+Ao final, serão exibidos como _outputs_ o IP do frontend, o IP do backend, o endpoint do banco e a `ssh_private_key`. Utilize esta chave nas secrets do GitHub Actions para permitir que o Ansible realize o deploy.
+
 ## 📆 Instalação
 
 ### Backend
